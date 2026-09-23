@@ -1,0 +1,265 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { Button } from "@/components/ui/button";
+import { Column } from "./column";
+import { NewColumnForm } from "./new-column-form";
+import { CardTile } from "./card-tile";
+import { CardDetailSheet } from "./card-detail-sheet";
+import { SprintDialog } from "./sprint-dialog";
+import { useBoardRealtime } from "@/hooks/use-board-realtime";
+import { createColumn, deleteColumn, renameColumn, updateColumnSettings } from "@/lib/actions/columns";
+import { createCard, moveCard } from "@/lib/actions/cards";
+import type { CardWithLabels, ColumnRow, LabelRow, MemberWithProfile, SprintRow } from "@/lib/types";
+import { BarChart3 } from "lucide-react";
+
+export function BoardView({
+  workspaceId,
+  boardId,
+  boardName,
+  initialColumns,
+  initialCards,
+  labels,
+  initialSprints,
+  members,
+  currentUserId,
+}: {
+  workspaceId: string;
+  boardId: string;
+  boardName: string;
+  initialColumns: ColumnRow[];
+  initialCards: CardWithLabels[];
+  labels: LabelRow[];
+  initialSprints: SprintRow[];
+  members: MemberWithProfile[];
+  currentUserId: string;
+}) {
+  const [columns, setColumns] = useState<ColumnRow[]>(initialColumns);
+  const [cards, setCards] = useState<CardWithLabels[]>(initialCards);
+  const [sprints, setSprints] = useState<SprintRow[]>(initialSprints);
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const dragOriginColumn = useRef<string | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const sortedColumns = useMemo(
+    () => [...columns].sort((a, b) => a.position - b.position),
+    [columns]
+  );
+
+  const cardsByColumn = useMemo(() => {
+    const map = new Map<string, CardWithLabels[]>();
+    for (const col of sortedColumns) map.set(col.id, []);
+    for (const card of [...cards].sort((a, b) => a.position - b.position)) {
+      map.get(card.column_id)?.push(card);
+    }
+    return map;
+  }, [cards, sortedColumns]);
+
+  useBoardRealtime({
+    boardId,
+    onColumnUpsert: (row) =>
+      setColumns((prev) => {
+        const others = prev.filter((c) => c.id !== row.id);
+        return [...others, row];
+      }),
+    onColumnDelete: (id) => setColumns((prev) => prev.filter((c) => c.id !== id)),
+    onCardUpsert: (row) =>
+      setCards((prev) => {
+        const existing = prev.find((c) => c.id === row.id);
+        const merged = existing ? { ...existing, ...row, label_ids: existing.label_ids } : row;
+        return [...prev.filter((c) => c.id !== row.id), merged];
+      }),
+    onCardDelete: (id) => setCards((prev) => prev.filter((c) => c.id !== id)),
+  });
+
+  function findContainer(id: string): string | undefined {
+    if (columns.some((c) => c.id === id)) return id;
+    return cards.find((c) => c.id === id)?.column_id;
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active.id as string;
+    setActiveCardId(id);
+    dragOriginColumn.current = findContainer(id) ?? null;
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
+    if (!activeContainer || !overContainer || activeContainer === overContainer) return;
+
+    setCards((prev) => {
+      const activeCard = prev.find((c) => c.id === activeId);
+      if (!activeCard) return prev;
+      const overIndex = prev.filter((c) => c.column_id === overContainer).findIndex((c) => c.id === overId);
+      const targetCards = prev.filter((c) => c.column_id === overContainer && c.id !== activeId);
+      const insertAt = overIndex >= 0 ? overIndex : targetCards.length;
+
+      const reordered = [...targetCards];
+      reordered.splice(insertAt, 0, { ...activeCard, column_id: overContainer });
+
+      const rest = prev.filter((c) => c.column_id !== overContainer && c.id !== activeId);
+      return [...rest, ...reordered.map((c, i) => ({ ...c, position: i }))];
+    });
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveCardId(null);
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overContainer = findContainer(over.id as string);
+    const fromColumnId = dragOriginColumn.current;
+    if (!overContainer || !fromColumnId) return;
+
+    const siblings = cards
+      .filter((c) => c.column_id === overContainer)
+      .sort((a, b) => a.position - b.position);
+    const newIndex = siblings.findIndex((c) => c.id === activeId);
+
+    await moveCard({
+      cardId: activeId,
+      boardId,
+      fromColumnId,
+      toColumnId: overContainer,
+      newIndex: newIndex >= 0 ? newIndex : siblings.length,
+    });
+  }
+
+  async function handleAddCard(columnId: string, title: string) {
+    const tempId = `temp-${crypto.randomUUID()}`;
+    const optimistic: CardWithLabels = {
+      id: tempId,
+      board_id: boardId,
+      column_id: columnId,
+      sprint_id: null,
+      title,
+      description: null,
+      position: (cardsByColumn.get(columnId)?.length ?? 0) + 1,
+      assignee_id: null,
+      due_date: null,
+      archived: false,
+      created_at: new Date().toISOString(),
+      created_by: currentUserId,
+      label_ids: [],
+    };
+    setCards((prev) => [...prev, optimistic]);
+
+    const result = await createCard(boardId, columnId, title);
+    if (result.success && result.id) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === tempId ? { ...c, id: result.id! } : c))
+      );
+    } else {
+      setCards((prev) => prev.filter((c) => c.id !== tempId));
+    }
+  }
+
+  async function handleAddColumn(name: string) {
+    await createColumn(boardId, name);
+  }
+
+  const activeCard = cards.find((c) => c.id === activeCardId) ?? null;
+  const openCard = cards.find((c) => c.id === openCardId) ?? null;
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="flex items-center justify-between border-b px-4 py-2">
+        <h1 className="text-lg font-semibold">{boardName}</h1>
+        <div className="flex items-center gap-2">
+          <SprintDialog boardId={boardId} sprints={sprints} onSprintsChange={setSprints} />
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/w/${workspaceId}/b/${boardId}/analytics`} />}
+          >
+            <BarChart3 className="size-4" />
+            Analytics
+          </Button>
+        </div>
+      </div>
+
+      <DndContext
+        id={`board-${boardId}`}
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-1 gap-3 overflow-x-auto p-4">
+          {sortedColumns.map((column) => (
+            <Column
+              key={column.id}
+              column={column}
+              cards={cardsByColumn.get(column.id) ?? []}
+              labels={labels}
+              members={members}
+              onAddCard={(title) => handleAddCard(column.id, title)}
+              onOpenCard={setOpenCardId}
+              onRename={(name) => {
+                setColumns((prev) => prev.map((c) => (c.id === column.id ? { ...c, name } : c)));
+                renameColumn(column.id, name);
+              }}
+              onDelete={() => {
+                setColumns((prev) => prev.filter((c) => c.id !== column.id));
+                deleteColumn(column.id);
+              }}
+              onUpdateSettings={(fields) => {
+                setColumns((prev) =>
+                  prev.map((c) => (c.id === column.id ? { ...c, ...fields } : c))
+                );
+                updateColumnSettings(column.id, fields);
+              }}
+            />
+          ))}
+          <NewColumnForm onAdd={handleAddColumn} />
+        </div>
+
+        <DragOverlay>
+          {activeCard ? (
+            <CardTile card={activeCard} labels={labels} members={members} onOpen={() => {}} />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      <CardDetailSheet
+        card={openCard}
+        open={!!openCard}
+        onOpenChange={(open) => !open && setOpenCardId(null)}
+        boardId={boardId}
+        labels={labels}
+        sprints={sprints}
+        members={members}
+        onLocalUpdate={(cardId, fields) =>
+          setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, ...fields } : c)))
+        }
+        onArchived={(cardId) => {
+          setCards((prev) => prev.filter((c) => c.id !== cardId));
+          setOpenCardId(null);
+        }}
+      />
+    </div>
+  );
+}

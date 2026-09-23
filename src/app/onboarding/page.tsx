@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { OnboardingForm } from "./onboarding-form";
 
-export default async function Home() {
+export default async function OnboardingPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,5 +18,15 @@ export default async function Home() {
     .limit(1)
     .maybeSingle();
 
-  redirect(membership ? `/w/${membership.workspace_id}` : "/onboarding");
+  if (membership) {
+    redirect(`/w/${membership.workspace_id}`);
+  }
+
+  return (
+    <div className="flex min-h-svh items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-sm">
+        <OnboardingForm />
+      </div>
+    </div>
+  );
 }
