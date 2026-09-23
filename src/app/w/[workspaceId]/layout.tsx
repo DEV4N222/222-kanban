@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { signOut } from "@/lib/actions/auth";
-import { LayoutGrid, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 
 export default async function WorkspaceLayout({
   children,
@@ -30,7 +31,7 @@ export default async function WorkspaceLayout({
       <header className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-4">
           <Link href={`/w/${workspaceId}`} className="flex items-center gap-2 font-semibold">
-            <LayoutGrid className="size-5" />
+            <Logo size={26} />
             {workspace.name}
           </Link>
         </div>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Logo } from "@/components/logo";
 import { acceptInvite } from "@/lib/actions/workspaces";
 
 export default async function InvitePage({
@@ -25,7 +26,8 @@ export default async function InvitePage({
   };
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/30 p-4">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/30 p-4">
+      <Logo size={48} />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Join workspace</CardTitle>
