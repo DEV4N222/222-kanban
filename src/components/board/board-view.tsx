@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -54,6 +57,30 @@ export function BoardView({
   const dragOriginColumn = useRef<string | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  // The dragged card's own sortable slot stays registered as a droppable
+  // candidate and is rendered following the pointer (via CSS transform), so
+  // the pointer is *always* "within" it — plain collision detection (even
+  // pointer-based) resolves to the card colliding with itself, and the move
+  // silently no-ops. Exclude the active item from the candidate set so
+  // collisions resolve to whatever the pointer is actually over.
+  const lastOverId = useRef<string | null>(null);
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const otherContainers = args.droppableContainers.filter((c) => c.id !== args.active.id);
+    const filteredArgs = { ...args, droppableContainers: otherContainers };
+
+    const pointerIntersections = pointerWithin(filteredArgs);
+    const intersections =
+      pointerIntersections.length > 0 ? pointerIntersections : rectIntersection(filteredArgs);
+    const overId = getFirstCollision(intersections, "id");
+
+    if (overId != null) {
+      lastOverId.current = overId as string;
+      return [{ id: overId }];
+    }
+
+    return lastOverId.current ? [{ id: lastOverId.current }] : [];
+  }, []);
 
   const sortedColumns = useMemo(
     () => [...columns].sort((a, b) => a.position - b.position),
@@ -203,7 +230,7 @@ export function BoardView({
       <DndContext
         id={`board-${boardId}`}
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}

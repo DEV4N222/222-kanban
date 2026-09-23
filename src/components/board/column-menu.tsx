@@ -39,8 +39,11 @@ export function ColumnMenu({
           <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setRenameOpen(true)}>Rename</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setWipOpen(true)}>Set WIP limit</DropdownMenuItem>
+          {/* Base UI requires onClick (not onSelect) for menu items that open a
+              dialog, since onSelect fires as part of the menu's own closing
+              sequence and the dialog's open state gets clobbered by it. */}
+          <DropdownMenuItem onClick={() => setRenameOpen(true)}>Rename</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setWipOpen(true)}>Set WIP limit</DropdownMenuItem>
           <DropdownMenuCheckboxItem
             checked={column.is_done}
             onCheckedChange={(checked) => onUpdateSettings({ is_done: checked })}
