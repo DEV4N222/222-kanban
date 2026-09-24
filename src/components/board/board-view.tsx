@@ -26,7 +26,9 @@ import { useBoardRealtime } from "@/hooks/use-board-realtime";
 import { createColumn, deleteColumn, renameColumn, updateColumnSettings } from "@/lib/actions/columns";
 import { createCard, moveCard } from "@/lib/actions/cards";
 import type { CardWithLabels, ColumnRow, LabelRow, MemberWithProfile, SprintRow } from "@/lib/types";
-import { BarChart3 } from "lucide-react";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, CalendarClock, CircleCheck } from "lucide-react";
 
 export function BoardView({
   workspaceId,
@@ -206,13 +208,35 @@ export function BoardView({
     await createColumn(boardId, name);
   }
 
+  // The sprint shown beside the board name: the active one, otherwise the next planned one.
+  const currentSprint =
+    sprints.find((s) => s.status === "active") ??
+    sprints
+      .filter((s) => s.status === "planned")
+      .sort((a, b) => a.start_date.localeCompare(b.start_date))[0] ??
+    null;
+
   const activeCard = cards.find((c) => c.id === activeCardId) ?? null;
   const openCard = cards.find((c) => c.id === openCardId) ?? null;
 
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex items-center justify-between border-b px-4 py-2">
-        <h1 className="text-lg font-semibold">{boardName}</h1>
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="truncate text-lg font-semibold">{boardName}</h1>
+          {currentSprint && (
+            <Badge
+              variant={currentSprint.status === "active" ? "default" : "outline"}
+              title={`${format(new Date(currentSprint.start_date), "MMM d")} – ${format(new Date(currentSprint.end_date), "MMM d, yyyy")}`}
+            >
+              {currentSprint.status === "active" ? <CircleCheck /> : <CalendarClock />}
+              {currentSprint.name}
+              <span className="font-normal opacity-80">
+                · {currentSprint.status === "active" ? "Active" : "Planned"}
+              </span>
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <SprintDialog boardId={boardId} sprints={sprints} onSprintsChange={setSprints} />
           <Button

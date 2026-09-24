@@ -34,6 +34,12 @@ export function InviteForm({ workspaceId }: { workspaceId: string }) {
         {pending ? "Inviting..." : "Invite"}
       </Button>
       {state?.error && <p className="w-full text-sm text-destructive">{state.error}</p>}
+      {state?.success && (
+        <p className="w-full text-sm text-muted-foreground">
+          Invite created. Use <span className="font-medium text-foreground">Copy link</span> below
+          and send it to your teammate.
+        </p>
+      )}
     </form>
   );
 }

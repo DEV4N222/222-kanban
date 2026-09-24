@@ -15,7 +15,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createSprint, deleteSprint, setSprintStatus } from "@/lib/actions/sprints";
 import type { SprintRow, SprintStatus } from "@/lib/types";
-import { CalendarClock, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { CalendarClock, Check, Trash2 } from "lucide-react";
 
 export function SprintDialog({
   boardId,
@@ -32,6 +33,7 @@ export function SprintDialog({
   const [endDate, setEndDate] = useState("");
   const [goal, setGoal] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   async function handleCreate() {
     const formData = new FormData();
@@ -45,7 +47,12 @@ export function SprintDialog({
       setError(result.error ?? "Could not create sprint.");
       return;
     }
-    onSprintsChange([result.sprint as SprintRow, ...sprints]);
+    const sprint = result.sprint as SprintRow;
+    onSprintsChange([sprint, ...sprints]);
+    setCreatedId(sprint.id);
+    toast.success(`Sprint "${sprint.name}" created`, {
+      description: `${format(new Date(sprint.start_date), "MMM d")} – ${format(new Date(sprint.end_date), "MMM d, yyyy")}`,
+    });
     setName("");
     setStartDate("");
     setEndDate("");
@@ -64,7 +71,13 @@ export function SprintDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setCreatedId(null);
+      }}
+    >
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         <CalendarClock className="size-4" />
         Sprints
@@ -81,7 +94,15 @@ export function SprintDialog({
           {sprints.map((sprint) => (
             <div key={sprint.id} className="flex items-center justify-between rounded-md border p-2">
               <div>
-                <p className="text-sm font-medium">{sprint.name}</p>
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                  {sprint.name}
+                  {sprint.id === createdId && (
+                    <span className="flex items-center gap-0.5 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                      <Check className="size-3.5" />
+                      Created
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {format(new Date(sprint.start_date), "MMM d")} –{" "}
                   {format(new Date(sprint.end_date), "MMM d, yyyy")}

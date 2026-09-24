@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "@/lib/safe-next";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
 
@@ -38,12 +39,18 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+    // Keep where they were heading (e.g. an invite link) so sign-in can return them there.
+    if (request.nextUrl.pathname !== "/") {
+      url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
+    }
     return NextResponse.redirect(url);
   }
 
   if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = safeNext(request.nextUrl.searchParams.get("next")) ?? "/";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

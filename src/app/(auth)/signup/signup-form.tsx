@@ -10,7 +10,7 @@ import { signUp } from "@/lib/actions/auth";
 
 type ActionState = { error?: string; success?: boolean } | null;
 
-export function SignupForm() {
+export function SignupForm({ next }: { next: string | null }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => (await signUp(formData)) ?? null,
     null
@@ -31,10 +31,15 @@ export function SignupForm() {
     <Card>
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
-        <CardDescription>222 Solutions Kanban</CardDescription>
+        <CardDescription>
+          {next?.startsWith("/invite/")
+            ? "Use the email address your invite was sent to."
+            : "222 Solutions Kanban"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input id="name" name="name" type="text" required autoComplete="name" />
@@ -64,7 +69,10 @@ export function SignupForm() {
 
         <p className="mt-4 text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="underline underline-offset-4">
+          <Link
+            href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+            className="underline underline-offset-4"
+          >
             Sign in
           </Link>
         </p>

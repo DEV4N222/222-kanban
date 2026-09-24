@@ -6,6 +6,8 @@ export type LabelRow = Database["public"]["Tables"]["labels"]["Row"];
 export type SprintRow = Database["public"]["Tables"]["sprints"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type CardEventRow = Database["public"]["Tables"]["card_events"]["Row"];
+export type CardRow = Database["public"]["Tables"]["cards"]["Row"];
+export type CardAttachmentRow = Database["public"]["Tables"]["card_attachments"]["Row"];
 
 export type CardWithLabels = Database["public"]["Tables"]["cards"]["Row"] & {
   label_ids: string[];

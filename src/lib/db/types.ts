@@ -249,6 +249,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["card_events"]["Insert"]>;
         Relationships: [];
       };
+      card_attachments: {
+        Row: {
+          id: string;
+          card_id: string;
+          board_id: string;
+          path: string;
+          name: string;
+          mime_type: string;
+          size: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          board_id: string;
+          path: string;
+          name: string;
+          mime_type: string;
+          size: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["card_attachments"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

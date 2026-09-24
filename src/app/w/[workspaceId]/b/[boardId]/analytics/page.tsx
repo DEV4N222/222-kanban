@@ -4,8 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { computeCfd } from "@/lib/analytics/cfd";
 import { computeBurndown } from "@/lib/analytics/burndown";
 import { CfdChart } from "@/components/charts/cfd-chart";
+import { computeLeaderboard } from "@/lib/analytics/leaderboard";
 import { BurndownChart } from "@/components/charts/burndown-chart";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GamificationChart } from "@/components/charts/gamification-chart";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
@@ -31,8 +33,14 @@ export default async function AnalyticsPage({
 
   const supabase = await createClient();
 
-  const [{ data: board }, { data: columns }, { data: sprints }, { data: events }] =
-    await Promise.all([
+  const [
+    { data: board },
+    { data: columns },
+    { data: sprints },
+    { data: events },
+    { data: cards },
+    { data: members },
+  ] = await Promise.all([
       supabase.from("boards").select("id, name").eq("id", boardId).maybeSingle(),
       supabase.from("columns").select("*").eq("board_id", boardId).order("position"),
       supabase
@@ -45,6 +53,15 @@ export default async function AnalyticsPage({
         .select("*")
         .eq("board_id", boardId)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("cards")
+        .select("id, column_id, sprint_id, assignee_id, archived")
+        .eq("board_id", boardId)
+        .not("sprint_id", "is", null),
+      supabase
+        .from("workspace_members")
+        .select("user_id, role, profiles(id, name, avatar_url)")
+        .eq("workspace_id", workspaceId),
     ]);
 
   if (!board || !columns) {
@@ -64,6 +81,10 @@ export default async function AnalyticsPage({
 
   const burndownPoints = selectedSprint
     ? computeBurndown(events ?? [], columns, selectedSprint)
+    : [];
+
+  const leaderboard = selectedSprint
+    ? computeLeaderboard(cards ?? [], events ?? [], columns, members ?? [], selectedSprint.id)
     : [];
 
   return (
@@ -140,6 +161,28 @@ export default async function AnalyticsPage({
           ) : (
             <p className="text-sm text-muted-foreground">
               Create a sprint on the board to see a burndown chart.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Gamification</CardTitle>
+          {selectedSprint && (
+            <CardDescription>Cards completed per member in {selectedSprint.name}</CardDescription>
+          )}
+        </CardHeader>
+        <CardContent>
+          {!selectedSprint ? (
+            <p className="text-sm text-muted-foreground">
+              Create a sprint on the board to see who completes the most cards.
+            </p>
+          ) : leaderboard.length > 0 ? (
+            <GamificationChart entries={leaderboard} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No cards completed in {selectedSprint.name} yet.
             </p>
           )}
         </CardContent>

@@ -1,5 +1,11 @@
+import { safeNext } from "@/lib/safe-next";
 import { SignupForm } from "./signup-form";
 
-export default function SignupPage() {
-  return <SignupForm />;
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  return <SignupForm next={safeNext(next)} />;
 }

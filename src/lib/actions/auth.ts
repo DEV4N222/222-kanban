@@ -3,11 +3,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safe-next";
 
 export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const next = safeNext(formData.get("next"));
 
   if (!email || !password || !name) {
     return { error: "All fields are required." };
@@ -21,7 +23,7 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
+      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next ?? "/onboarding")}`,
     },
   });
 
@@ -32,7 +34,7 @@ export async function signUp(formData: FormData) {
   // Email confirmation may be disabled (e.g. local/dev projects), in which
   // case signUp already returns an active session and there's no email to check.
   if (data.session) {
-    redirect("/");
+    redirect(next ?? "/");
   }
 
   return { success: true };
@@ -41,6 +43,7 @@ export async function signUp(formData: FormData) {
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   if (!email || !password) {
     return { error: "Email and password are required." };
@@ -53,11 +56,12 @@ export async function signIn(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect("/");
+  redirect(next ?? "/");
 }
 
 export async function signInWithMagicLink(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
+  const next = safeNext(formData.get("next"));
 
   if (!email) {
     return { error: "Email is required." };
@@ -69,7 +73,7 @@ export async function signInWithMagicLink(formData: FormData) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm?next=/`,
+      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next ?? "/")}`,
     },
   });
 

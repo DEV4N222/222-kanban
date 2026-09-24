@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CardImages } from "./card-images";
 import { updateCard, archiveCard, setCardLabels, assignCardToSprint } from "@/lib/actions/cards";
 import type { CardWithLabels, LabelRow, MemberWithProfile, SprintRow, CardEventRow } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -144,6 +145,8 @@ function CardDetailContent({
             placeholder="Add a description..."
           />
         </div>
+
+        <CardImages cardId={card.id} boardId={boardId} />
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">

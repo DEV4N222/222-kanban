@@ -10,7 +10,7 @@ import { signIn, signInWithMagicLink } from "@/lib/actions/auth";
 
 type ActionState = { error?: string; success?: boolean } | null;
 
-export function LoginForm() {
+export function LoginForm({ next }: { next: string | null }) {
   const [mode, setMode] = useState<"password" | "magic-link">("password");
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) =>
@@ -24,10 +24,15 @@ export function LoginForm() {
     <Card>
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>222 Solutions Kanban</CardDescription>
+        <CardDescription>
+          {next?.startsWith("/invite/")
+            ? "You've been invited to a workspace. Sign in, or sign up with the email address the invite was sent to."
+            : "222 Solutions Kanban"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required autoComplete="email" />
@@ -68,7 +73,10 @@ export function LoginForm() {
 
         <p className="mt-4 text-sm text-muted-foreground">
           No account?{" "}
-          <Link href="/signup" className="underline underline-offset-4">
+          <Link
+            href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+            className="underline underline-offset-4"
+          >
             Sign up
           </Link>
         </p>
