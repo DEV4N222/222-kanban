@@ -7,6 +7,8 @@ import { CfdChart } from "@/components/charts/cfd-chart";
 import { computeLeaderboard } from "@/lib/analytics/leaderboard";
 import { BurndownChart } from "@/components/charts/burndown-chart";
 import { GamificationChart } from "@/components/charts/gamification-chart";
+import { CadenceChart } from "@/components/charts/cadence-chart";
+import { computeCadence } from "@/lib/analytics/cadence";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -55,7 +57,7 @@ export default async function AnalyticsPage({
         .order("created_at", { ascending: true }),
       supabase
         .from("cards")
-        .select("id, column_id, sprint_id, assignee_id, archived")
+        .select("id, column_id, sprint_id, assignee_id, archived, created_at")
         .eq("board_id", boardId)
         .not("sprint_id", "is", null),
       supabase
@@ -86,6 +88,8 @@ export default async function AnalyticsPage({
   const leaderboard = selectedSprint
     ? computeLeaderboard(cards ?? [], events ?? [], columns, members ?? [], selectedSprint.id)
     : [];
+
+  const cadence = computeCadence(cards ?? [], events ?? [], columns, sprints ?? []);
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 p-6">
@@ -183,6 +187,22 @@ export default async function AnalyticsPage({
           ) : (
             <p className="text-sm text-muted-foreground">
               No cards completed in {selectedSprint.name} yet.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Squad cadence</CardTitle>
+          <CardDescription>Average time to complete a card, sprint by sprint</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {selectedSprint ? (
+            <CadenceChart points={cadence} selectedSprintId={selectedSprint.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Create a sprint on the board to see how quickly cards get done.
             </p>
           )}
         </CardContent>
