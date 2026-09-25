@@ -10,8 +10,8 @@ import { signIn, signInWithMagicLink } from "@/lib/actions/auth";
 
 type ActionState = { error?: string; success?: boolean } | null;
 
-export function LoginForm({ next }: { next: string | null }) {
-  const [mode, setMode] = useState<"password" | "magic-link">("password");
+export function LoginForm({ next, linkError }: { next: string | null; linkError: string | null }) {
+  const [mode, setMode] = useState<"password" | "magic-link">(linkError ? "magic-link" : "password");
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) =>
       mode === "password"
@@ -51,6 +51,7 @@ export function LoginForm({ next }: { next: string | null }) {
             </div>
           )}
 
+          {linkError && !state && <p className="text-sm text-destructive">{linkError}</p>}
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
           {state?.success && mode === "magic-link" && (
             <p className="text-sm text-muted-foreground">
