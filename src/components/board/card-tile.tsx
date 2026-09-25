@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { LabelChip } from "@/components/labels/label-chip";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import type { CardWithLabels, LabelRow, MemberWithProfile } from "@/lib/types";
@@ -56,12 +57,7 @@ export function CardTile({
       {cardLabels.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1">
           {cardLabels.map((l) => (
-            <span
-              key={l.id}
-              className="h-1.5 w-8 rounded-full"
-              style={{ backgroundColor: l.color }}
-              title={l.name}
-            />
+            <LabelChip key={l.id} label={l} className="px-1.5 text-[11px]" />
           ))}
         </div>
       )}

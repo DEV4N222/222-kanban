@@ -12,16 +12,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CardImages } from "./card-images";
-import { updateCard, archiveCard, setCardLabels, assignCardToSprint } from "@/lib/actions/cards";
+import { CardLabels } from "@/components/labels/card-labels";
+import { updateCard, archiveCard, assignCardToSprint } from "@/lib/actions/cards";
 import type { CardWithLabels, LabelRow, MemberWithProfile, SprintRow, CardEventRow } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const NO_ASSIGNEE = "__none__";
 const NO_SPRINT = "__none__";
@@ -36,6 +35,7 @@ export function CardDetailSheet({
   members,
   onLocalUpdate,
   onArchived,
+  onLabelCreated,
 }: {
   card: CardWithLabels | null;
   open: boolean;
@@ -46,6 +46,7 @@ export function CardDetailSheet({
   members: MemberWithProfile[];
   onLocalUpdate: (cardId: string, fields: Partial<CardWithLabels>) => void;
   onArchived: (cardId: string) => void;
+  onLabelCreated: (label: LabelRow) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -60,6 +61,7 @@ export function CardDetailSheet({
             members={members}
             onLocalUpdate={onLocalUpdate}
             onArchived={onArchived}
+            onLabelCreated={onLabelCreated}
           />
         )}
       </SheetContent>
@@ -75,6 +77,7 @@ function CardDetailContent({
   members,
   onLocalUpdate,
   onArchived,
+  onLabelCreated,
 }: {
   card: CardWithLabels;
   boardId: string;
@@ -83,6 +86,7 @@ function CardDetailContent({
   members: MemberWithProfile[];
   onLocalUpdate: (cardId: string, fields: Partial<CardWithLabels>) => void;
   onArchived: (cardId: string) => void;
+  onLabelCreated: (label: LabelRow) => void;
 }) {
   // Keyed by card.id from the parent, so this remounts (and re-derives the
   // initial state below) whenever the open card changes.
@@ -233,37 +237,14 @@ function CardDetailContent({
           </Select>
         </div>
 
-        {labels.length > 0 && (
-          <div className="space-y-2">
-            <Label>Labels</Label>
-            <div className="flex flex-wrap gap-2">
-              {labels.map((label) => {
-                const active = card.label_ids.includes(label.id);
-                return (
-                  <button
-                    key={label.id}
-                    type="button"
-                    onClick={() => {
-                      const nextIds = active
-                        ? card.label_ids.filter((id) => id !== label.id)
-                        : [...card.label_ids, label.id];
-                      onLocalUpdate(card.id, { label_ids: nextIds });
-                      setCardLabels(card.id, nextIds);
-                    }}
-                  >
-                    <Badge
-                      style={{ backgroundColor: active ? label.color : undefined }}
-                      variant={active ? "default" : "outline"}
-                      className={cn(!active && "text-muted-foreground")}
-                    >
-                      {label.name}
-                    </Badge>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <CardLabels
+          cardId={card.id}
+          boardId={boardId}
+          labels={labels}
+          selectedIds={card.label_ids}
+          onChange={(label_ids) => onLocalUpdate(card.id, { label_ids })}
+          onLabelCreated={onLabelCreated}
+        />
 
         <div className="space-y-2">
           <Label>Activity</Label>

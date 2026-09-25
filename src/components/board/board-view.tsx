@@ -22,6 +22,7 @@ import { NewColumnForm } from "./new-column-form";
 import { CardTile } from "./card-tile";
 import { CardDetailSheet } from "./card-detail-sheet";
 import { SprintDialog } from "./sprint-dialog";
+import { LabelsDialog } from "@/components/labels/labels-dialog";
 import { useBoardRealtime } from "@/hooks/use-board-realtime";
 import { createColumn, deleteColumn, renameColumn, updateColumnSettings } from "@/lib/actions/columns";
 import { createCard, moveCard } from "@/lib/actions/cards";
@@ -36,7 +37,7 @@ export function BoardView({
   boardName,
   initialColumns,
   initialCards,
-  labels,
+  labels: initialLabels,
   initialSprints,
   members,
   currentUserId,
@@ -53,6 +54,33 @@ export function BoardView({
 }) {
   const [columns, setColumns] = useState<ColumnRow[]>(initialColumns);
   const [cards, setCards] = useState<CardWithLabels[]>(initialCards);
+  const [labels, setLabels] = useState<LabelRow[]>(initialLabels);
+
+  const labelUsage = useMemo(() => {
+    const usage = new Map<string, number>();
+    for (const card of cards) {
+      for (const id of card.label_ids) usage.set(id, (usage.get(id) ?? 0) + 1);
+    }
+    return usage;
+  }, [cards]);
+
+  const sortedLabels = useMemo(
+    () => [...labels].sort((a, b) => a.name.localeCompare(b.name)),
+    [labels]
+  );
+
+  function upsertLabel(label: LabelRow) {
+    setLabels((prev) => [...prev.filter((l) => l.id !== label.id), label]);
+  }
+
+  function removeLabel(labelId: string) {
+    setLabels((prev) => prev.filter((l) => l.id !== labelId));
+    setCards((prev) =>
+      prev.map((c) =>
+        c.label_ids.includes(labelId) ? { ...c, label_ids: c.label_ids.filter((id) => id !== labelId) } : c
+      )
+    );
+  }
   const [sprints, setSprints] = useState<SprintRow[]>(initialSprints);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
@@ -239,6 +267,14 @@ export function BoardView({
         </div>
         <div className="flex items-center gap-2">
           <SprintDialog boardId={boardId} sprints={sprints} onSprintsChange={setSprints} />
+          <LabelsDialog
+            boardId={boardId}
+            labels={sortedLabels}
+            usage={labelUsage}
+            onCreated={upsertLabel}
+            onUpdated={upsertLabel}
+            onDeleted={removeLabel}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -274,7 +310,7 @@ export function BoardView({
               key={column.id}
               column={column}
               cards={cardsByColumn.get(column.id) ?? []}
-              labels={labels}
+              labels={sortedLabels}
               members={members}
               onAddCard={(title) => handleAddCard(column.id, title)}
               onOpenCard={setOpenCardId}
@@ -299,7 +335,7 @@ export function BoardView({
 
         <DragOverlay>
           {activeCard ? (
-            <CardTile card={activeCard} labels={labels} members={members} onOpen={() => {}} />
+            <CardTile card={activeCard} labels={sortedLabels} members={members} onOpen={() => {}} />
           ) : null}
         </DragOverlay>
       </DndContext>
@@ -309,7 +345,8 @@ export function BoardView({
         open={!!openCard}
         onOpenChange={(open) => !open && setOpenCardId(null)}
         boardId={boardId}
-        labels={labels}
+        labels={sortedLabels}
+        onLabelCreated={upsertLabel}
         sprints={sprints}
         members={members}
         onLocalUpdate={(cardId, fields) =>
