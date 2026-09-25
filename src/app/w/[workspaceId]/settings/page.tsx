@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InviteForm } from "@/components/workspace/invite-form";
 import { CopyInviteLink } from "@/components/workspace/copy-invite-link";
+import { BuildInfoCard } from "@/components/workspace/build-info-card";
+import { buildInfo, formatBuildTime } from "@/lib/build-info";
 import { removeMember, revokeInvite } from "@/lib/actions/invites";
 
 // Server-rendered per request, so reading the clock here is fine.
@@ -112,6 +114,8 @@ export default async function WorkspaceSettingsPage({
           </CardContent>
         </Card>
       )}
+
+      <BuildInfoCard builtAt={formatBuildTime(buildInfo.time)} />
     </div>
   );
 }
