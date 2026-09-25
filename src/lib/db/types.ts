@@ -16,6 +16,7 @@ export type CardEventType =
 export type RaidType = "risk" | "assumption" | "issue" | "decision";
 export type RaidStatus = "open" | "in_progress" | "closed";
 export type RaidLevel = "low" | "medium" | "high";
+export type RetroKind = "keep" | "stop" | "start" | "celebrate";
 
 export interface Database {
   public: {
@@ -314,6 +315,52 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["raid_items"]["Insert"]>;
+        Relationships: [];
+      };
+      retro_notes: {
+        Row: {
+          id: string;
+          board_id: string;
+          sprint_id: string;
+          kind: RetroKind;
+          body: string;
+          author_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          board_id: string;
+          sprint_id: string;
+          kind: RetroKind;
+          body: string;
+          author_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["retro_notes"]["Insert"]>;
+        Relationships: [];
+      };
+      retro_summaries: {
+        Row: {
+          sprint_id: string;
+          board_id: string;
+          story: string;
+          themes: string[];
+          note_count: number;
+          generated_by: string | null;
+          generated_at: string;
+        };
+        Insert: {
+          sprint_id: string;
+          board_id: string;
+          story: string;
+          themes?: string[];
+          note_count: number;
+          generated_by?: string | null;
+          generated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["retro_summaries"]["Insert"]>;
         Relationships: [];
       };
     };
