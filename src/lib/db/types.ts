@@ -13,6 +13,9 @@ export type CardEventType =
   | "unarchived"
   | "sprint_added"
   | "sprint_removed";
+export type RaidType = "risk" | "assumption" | "issue" | "decision";
+export type RaidStatus = "open" | "in_progress" | "closed";
+export type RaidLevel = "low" | "medium" | "high";
 
 export interface Database {
   public: {
@@ -273,6 +276,44 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["card_attachments"]["Insert"]>;
+        Relationships: [];
+      };
+      raid_items: {
+        Row: {
+          id: string;
+          board_id: string;
+          type: RaidType;
+          number: number;
+          title: string;
+          description: string | null;
+          owner_id: string | null;
+          status: RaidStatus;
+          impact: RaidLevel | null;
+          likelihood: RaidLevel | null;
+          action: string | null;
+          due_date: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          board_id: string;
+          type: RaidType;
+          number: number;
+          title: string;
+          description?: string | null;
+          owner_id?: string | null;
+          status?: RaidStatus;
+          impact?: RaidLevel | null;
+          likelihood?: RaidLevel | null;
+          action?: string | null;
+          due_date?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["raid_items"]["Insert"]>;
         Relationships: [];
       };
     };
