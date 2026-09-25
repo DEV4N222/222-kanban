@@ -29,7 +29,7 @@ import { createCard, moveCard } from "@/lib/actions/cards";
 import type { CardWithLabels, ColumnRow, LabelRow, MemberWithProfile, SprintRow } from "@/lib/types";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, CalendarClock, CircleCheck, ShieldAlert } from "lucide-react";
+import { BarChart3, CalendarClock, CircleCheck, MessagesSquare, ShieldAlert } from "lucide-react";
 
 export function BoardView({
   workspaceId,
@@ -267,6 +267,15 @@ export function BoardView({
         </div>
         <div className="flex items-center gap-2">
           <SprintDialog boardId={boardId} sprints={sprints} onSprintsChange={setSprints} />
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/w/${workspaceId}/b/${boardId}/retro`} />}
+          >
+            <MessagesSquare className="size-4" />
+            Retro
+          </Button>
           <LabelsDialog
             boardId={boardId}
             labels={sortedLabels}
