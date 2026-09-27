@@ -98,8 +98,8 @@ export function CadenceChart({ points, selectedSprintId }: { points: CadencePoin
         </BarChart>
       </ResponsiveContainer>
       <p className="text-xs text-muted-foreground">
-        Time from a card being added to the sprint until it reaches a Done column. Highlighted: the
-        selected sprint.
+        Time from a card being pulled out of the Backlog until it reaches a Done column (time waiting in
+        the Backlog doesn&apos;t count). Highlighted: the selected sprint.
       </p>
     </div>
   );
