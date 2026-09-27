@@ -10,19 +10,16 @@ export type CadencePoint = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The column named "Backlog", otherwise the left-most column. */
+/** The column named "Backlog" (any capitalisation), if the board has one. */
 export function backlogColumn(columns: ColumnRow[]): ColumnRow | undefined {
-  return (
-    columns.find((c) => c.name.trim().toLowerCase() === "backlog") ??
-    [...columns].sort((a, b) => a.position - b.position)[0]
-  );
+  return columns.find((c) => c.name.trim().toLowerCase() === "backlog");
 }
 
 // Squad cadence: for each sprint, the average time its completed cards took
 // once work started. A card's clock starts the last time it was pulled out of
 // the backlog (so time waiting there doesn't count) and stops the last time
-// it entered an `is_done` column. A card that never sat in the backlog starts
-// when it was created. Completed means the same as the burndown and
+// it entered an `is_done` column. A card that never sat in the backlog (or a
+// board with no column named "Backlog") starts when the card was created. Completed means the same as the burndown and
 // gamification charts: in the sprint, not archived, and currently in Done.
 export function computeCadence(
   cards: Pick<CardRow, "id" | "column_id" | "sprint_id" | "archived" | "created_at">[],
@@ -60,6 +57,7 @@ export function computeCadence(
       .reverse()
       .find(
         (e) =>
+          backlogId !== undefined &&
           e.event_type === "moved" &&
           e.from_column_id === backlogId &&
           e.to_column_id !== backlogId &&

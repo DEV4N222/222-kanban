@@ -8,7 +8,7 @@ import { computeLeaderboard } from "@/lib/analytics/leaderboard";
 import { BurndownChart } from "@/components/charts/burndown-chart";
 import { GamificationChart } from "@/components/charts/gamification-chart";
 import { CadenceChart } from "@/components/charts/cadence-chart";
-import { computeCadence } from "@/lib/analytics/cadence";
+import { backlogColumn, computeCadence } from "@/lib/analytics/cadence";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -199,7 +199,11 @@ export default async function AnalyticsPage({
         </CardHeader>
         <CardContent>
           {selectedSprint ? (
-            <CadenceChart points={cadence} selectedSprintId={selectedSprint.id} />
+            <CadenceChart
+              points={cadence}
+              selectedSprintId={selectedSprint.id}
+              hasBacklog={Boolean(backlogColumn(columns))}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               Create a sprint on the board to see how quickly cards get done.

@@ -4,7 +4,15 @@ import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Too
 import { formatDays, type CadencePoint } from "@/lib/analytics/cadence";
 import { Timer, TrendingDown, TrendingUp } from "lucide-react";
 
-export function CadenceChart({ points, selectedSprintId }: { points: CadencePoint[]; selectedSprintId: string }) {
+export function CadenceChart({
+  points,
+  selectedSprintId,
+  hasBacklog,
+}: {
+  points: CadencePoint[];
+  selectedSprintId: string;
+  hasBacklog: boolean;
+}) {
   const index = points.findIndex((p) => p.sprintId === selectedSprintId);
   const selected = points[index];
   const previous = points
@@ -98,8 +106,10 @@ export function CadenceChart({ points, selectedSprintId }: { points: CadencePoin
         </BarChart>
       </ResponsiveContainer>
       <p className="text-xs text-muted-foreground">
-        Time from a card being pulled out of the Backlog until it reaches a Done column (time waiting in
-        the Backlog doesn&apos;t count). Highlighted: the selected sprint.
+        {hasBacklog
+          ? "Time from a card being pulled out of the Backlog until it reaches a Done column (time waiting in the Backlog doesn't count)."
+          : "This board has no column named “Backlog”, so time is counted from when each card was created until it reaches a Done column."}{" "}
+        Highlighted: the selected sprint.
       </p>
     </div>
   );
