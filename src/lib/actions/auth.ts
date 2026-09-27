@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -28,7 +29,7 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: authErrorMessage(error, "sign-up") };
   }
 
   // Email confirmation may be disabled (e.g. local/dev projects), in which
@@ -53,7 +54,7 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { error: error.message };
+    return { error: authErrorMessage(error, "sign-in") };
   }
 
   redirect(next ?? "/");
@@ -78,7 +79,7 @@ export async function signInWithMagicLink(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: authErrorMessage(error, "magic-link") };
   }
 
   return { success: true };
