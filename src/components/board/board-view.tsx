@@ -261,7 +261,12 @@ export function BoardView({
           <h1 className="truncate text-lg font-semibold">{boardName}</h1>
           {currentSprint && (
             <Badge
-              variant={currentSprint.status === "active" ? "default" : "outline"}
+              variant="outline"
+              className={
+                currentSprint.status === "active"
+                  ? "border-transparent bg-emerald-700 text-white"
+                  : "border-emerald-700/40 text-emerald-800 dark:border-emerald-400/40 dark:text-emerald-300"
+              }
               title={`${format(new Date(currentSprint.start_date), "MMM d")} – ${format(new Date(currentSprint.end_date), "MMM d, yyyy")}`}
             >
               {currentSprint.status === "active" ? <CircleCheck /> : <CalendarClock />}
@@ -271,6 +276,11 @@ export function BoardView({
               </span>
             </Badge>
           )}
+          <ArchivedCardsDialog
+            boardId={boardId}
+            canDelete={canDeleteCards}
+            onRestored={(card) => setCards((prev) => [...prev.filter((c) => c.id !== card.id), card])}
+          />
         </div>
         <div className="flex items-center gap-2">
           <SprintDialog boardId={boardId} sprints={sprints} onSprintsChange={setSprints} />
@@ -300,11 +310,6 @@ export function BoardView({
             <ShieldAlert className="size-4" />
             RAID
           </Button>
-          <ArchivedCardsDialog
-            boardId={boardId}
-            canDelete={canDeleteCards}
-            onRestored={(card) => setCards((prev) => [...prev.filter((c) => c.id !== card.id), card])}
-          />
           <Button
             variant="outline"
             size="sm"
