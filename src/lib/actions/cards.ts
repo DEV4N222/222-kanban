@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { CardWithLabels } from "@/lib/types";
 
 async function currentUserId() {
   const supabase = await createClient();
@@ -124,12 +125,68 @@ export async function archiveCard(cardId: string, boardId: string) {
   return { success: true };
 }
 
-export async function unarchiveCard(cardId: string, boardId: string) {
+export type ArchivedCard = {
+  id: string;
+  title: string;
+  columnName: string | null;
+  archivedAt: string | null;
+  archivedBy: string | null;
+};
+
+export async function listArchivedCards(boardId: string): Promise<{ cards: ArchivedCard[] } | { error: string }> {
+  const supabase = await createClient();
+  const [{ data: cards, error }, { data: columns }, { data: events }] = await Promise.all([
+    supabase.from("cards").select("id, title, column_id").eq("board_id", boardId).eq("archived", true),
+    supabase.from("columns").select("id, name").eq("board_id", boardId),
+    supabase
+      .from("card_events")
+      .select("card_id, created_at, actor_id")
+      .eq("board_id", boardId)
+      .eq("event_type", "archived")
+      .order("created_at", { ascending: false }),
+  ]);
+  if (error) return { error: error.message };
+
+  const actorIds = [...new Set((events ?? []).map((e) => e.actor_id).filter((id): id is string => !!id))];
+  const { data: profiles } = actorIds.length
+    ? await supabase.from("profiles").select("id, name").in("id", actorIds)
+    : { data: [] };
+
+  const lastArchive = new Map<string, { at: string; by: string | null }>();
+  for (const e of events ?? []) {
+    if (!lastArchive.has(e.card_id)) lastArchive.set(e.card_id, { at: e.created_at, by: e.actor_id });
+  }
+
+  return {
+    cards: (cards ?? [])
+      .map((card) => {
+        const archived = lastArchive.get(card.id);
+        return {
+          id: card.id,
+          title: card.title,
+          columnName: columns?.find((c) => c.id === card.column_id)?.name ?? null,
+          archivedAt: archived?.at ?? null,
+          archivedBy: profiles?.find((p) => p.id === archived?.by)?.name ?? null,
+        };
+      })
+      .sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? "")),
+  };
+}
+
+export async function unarchiveCard(
+  cardId: string,
+  boardId: string
+): Promise<{ card: CardWithLabels } | { error: string }> {
   const supabase = await createClient();
   const userId = await currentUserId();
 
-  const { error } = await supabase.from("cards").update({ archived: false }).eq("id", cardId);
-  if (error) return { error: error.message };
+  const { data: card, error } = await supabase
+    .from("cards")
+    .update({ archived: false })
+    .eq("id", cardId)
+    .select("*, card_labels(label_id)")
+    .single();
+  if (error || !card) return { error: error?.message ?? "Could not restore card." };
 
   await supabase.from("card_events").insert({
     card_id: cardId,
@@ -138,13 +195,32 @@ export async function unarchiveCard(cardId: string, boardId: string) {
     actor_id: userId,
   });
 
-  return { success: true };
+  const { card_labels, ...rest } = card as typeof card & { card_labels: { label_id: string }[] | null };
+  return { card: { ...rest, label_ids: (card_labels ?? []).map((l) => l.label_id) } };
 }
 
-export async function deleteCard(cardId: string) {
+// Permanent. The database only allows it for archived cards, and only for
+// workspace owners and admins; anyone else's request deletes nothing.
+export async function deleteArchivedCard(cardId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("cards").delete().eq("id", cardId);
+
+  const { data: attachments } = await supabase.from("card_attachments").select("path").eq("card_id", cardId);
+
+  const { data: deleted, error } = await supabase
+    .from("cards")
+    .delete()
+    .eq("id", cardId)
+    .eq("archived", true)
+    .select("id");
   if (error) return { error: error.message };
+  if (!deleted || deleted.length === 0) {
+    return { error: "Only workspace owners and admins can permanently delete archived cards." };
+  }
+
+  // The attachment rows went with the card; tidy up the image files too.
+  const paths = (attachments ?? []).map((a) => a.path);
+  if (paths.length > 0) await supabase.storage.from("card-images").remove(paths);
+
   return { success: true };
 }
 

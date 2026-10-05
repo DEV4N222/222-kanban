@@ -23,6 +23,8 @@ import { CardTile } from "./card-tile";
 import { CardDetailSheet } from "./card-detail-sheet";
 import { SprintDialog } from "./sprint-dialog";
 import { LabelsDialog } from "@/components/labels/labels-dialog";
+import { ArchivedCardsDialog } from "./archived-cards-dialog";
+import { toast } from "sonner";
 import { useBoardRealtime } from "@/hooks/use-board-realtime";
 import { createColumn, deleteColumn, renameColumn, updateColumnSettings } from "@/lib/actions/columns";
 import { createCard, moveCard } from "@/lib/actions/cards";
@@ -55,6 +57,8 @@ export function BoardView({
   const [columns, setColumns] = useState<ColumnRow[]>(initialColumns);
   const [cards, setCards] = useState<CardWithLabels[]>(initialCards);
   const [labels, setLabels] = useState<LabelRow[]>(initialLabels);
+  const myRole = members.find((m) => m.user_id === currentUserId)?.role;
+  const canDeleteCards = myRole === "owner" || myRole === "admin";
 
   const labelUsage = useMemo(() => {
     const usage = new Map<string, number>();
@@ -136,9 +140,12 @@ export function BoardView({
     onColumnDelete: (id) => setColumns((prev) => prev.filter((c) => c.id !== id)),
     onCardUpsert: (row) =>
       setCards((prev) => {
+        const others = prev.filter((c) => c.id !== row.id);
+        // Archived by someone (maybe a teammate): it leaves the board.
+        if (row.archived) return others;
         const existing = prev.find((c) => c.id === row.id);
-        const merged = existing ? { ...existing, ...row, label_ids: existing.label_ids } : row;
-        return [...prev.filter((c) => c.id !== row.id), merged];
+        // Realtime rows don't carry labels; keep ours, or start empty.
+        return [...others, { ...existing, ...row, label_ids: existing?.label_ids ?? [] }];
       }),
     onCardDelete: (id) => setCards((prev) => prev.filter((c) => c.id !== id)),
   });
@@ -293,6 +300,11 @@ export function BoardView({
             <ShieldAlert className="size-4" />
             RAID
           </Button>
+          <ArchivedCardsDialog
+            boardId={boardId}
+            canDelete={canDeleteCards}
+            onRestored={(card) => setCards((prev) => [...prev.filter((c) => c.id !== card.id), card])}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -327,9 +339,13 @@ export function BoardView({
                 setColumns((prev) => prev.map((c) => (c.id === column.id ? { ...c, name } : c)));
                 renameColumn(column.id, name);
               }}
-              onDelete={() => {
+              onDelete={async () => {
                 setColumns((prev) => prev.filter((c) => c.id !== column.id));
-                deleteColumn(column.id);
+                const result = await deleteColumn(column.id);
+                if (result.error) {
+                  setColumns((prev) => [...prev.filter((c) => c.id !== column.id), column]);
+                  toast.error(`Couldn't delete "${column.name}"`, { description: result.error });
+                }
               }}
               onUpdateSettings={(fields) => {
                 setColumns((prev) =>
