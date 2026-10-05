@@ -27,7 +27,7 @@ export default async function WorkspaceLayout({
   }
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-4">
           <Link href={`/w/${workspaceId}`} className="flex items-center gap-2 font-semibold">
