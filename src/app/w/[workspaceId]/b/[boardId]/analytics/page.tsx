@@ -8,7 +8,6 @@ import { computeLeaderboard } from "@/lib/analytics/leaderboard";
 import { BurndownChart } from "@/components/charts/burndown-chart";
 import { GamificationChart } from "@/components/charts/gamification-chart";
 import { CadenceChart } from "@/components/charts/cadence-chart";
-import { DownloadReportButton } from "@/components/report/download-report-button";
 import { backlogColumn, computeCadence } from "@/lib/analytics/cadence";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,26 +93,16 @@ export default async function AnalyticsPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            nativeButton={false}
-            render={<Link href={`/w/${workspaceId}/b/${boardId}`} />}
-          >
-            <ArrowLeft className="size-4" />
-          </Button>
-          <h1 className="text-2xl font-semibold">{board.name} — Analytics</h1>
-        </div>
-        {selectedSprint && (
-          <DownloadReportButton
-            workspaceId={workspaceId}
-            boardId={boardId}
-            sprintId={selectedSprint.id}
-            sprintName={selectedSprint.name}
-          />
-        )}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          nativeButton={false}
+          render={<Link href={`/w/${workspaceId}/b/${boardId}`} />}
+        >
+          <ArrowLeft className="size-4" />
+        </Button>
+        <h1 className="text-2xl font-semibold">{board.name} — Analytics</h1>
       </div>
 
       <Card>
