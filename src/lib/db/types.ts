@@ -384,6 +384,10 @@ export interface Database {
         Args: { _email: string };
         Returns: boolean;
       };
+      set_member_role: {
+        Args: { _workspace_id: string; _user_id: string; _role: "admin" | "member" };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;

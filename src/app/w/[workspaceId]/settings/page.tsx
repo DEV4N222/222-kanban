@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { InviteForm } from "@/components/workspace/invite-form";
 import { CopyInviteLink } from "@/components/workspace/copy-invite-link";
 import { BuildInfoCard } from "@/components/workspace/build-info-card";
+import { MemberRoleSelect } from "@/components/workspace/member-role-select";
 import { buildInfo, formatBuildTime } from "@/lib/build-info";
 import { removeMember, revokeInvite } from "@/lib/actions/invites";
 
@@ -44,6 +45,7 @@ export default async function WorkspaceSettingsPage({
 
   const myRole = members.find((m) => m.user_id === user?.id)?.role;
   const canManage = myRole === "owner" || myRole === "admin";
+  const isOwner = myRole === "owner";
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
@@ -58,7 +60,16 @@ export default async function WorkspaceSettingsPage({
             <div key={m.user_id} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm">{m.profiles?.name ?? "Unknown"}</span>
-                <Badge variant="secondary">{m.role}</Badge>
+                {isOwner && m.role !== "owner" ? (
+                  <MemberRoleSelect
+                    workspaceId={workspaceId}
+                    userId={m.user_id}
+                    name={m.profiles?.name ?? "This person"}
+                    role={m.role === "admin" ? "admin" : "member"}
+                  />
+                ) : (
+                  <Badge variant="secondary">{m.role}</Badge>
+                )}
               </div>
               {canManage && m.role !== "owner" && m.user_id !== user?.id && (
                 <form action={removeMember.bind(null, workspaceId, m.user_id)}>
