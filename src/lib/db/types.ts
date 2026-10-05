@@ -380,6 +380,10 @@ export interface Database {
         Args: { _workspace_id: string };
         Returns: boolean;
       };
+      can_sign_up: {
+        Args: { _email: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

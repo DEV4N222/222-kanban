@@ -2,6 +2,9 @@ import type { AuthError } from "@supabase/supabase-js";
 
 type Action = "sign-in" | "sign-up" | "magic-link";
 
+export const ACCESS_EMAIL = "info@222.solutions";
+export const INVITE_ONLY_MESSAGE = `Sign-up is by invitation only. To ask for access, email ${ACCESS_EMAIL}.`;
+
 // Turn a Supabase auth error into something a person can act on, and log
 // the raw details (visible in Vercel's function logs) for debugging. Some
 // failures, such as the email service timing out, arrive with an empty
@@ -28,6 +31,18 @@ export function authErrorMessage(error: AuthError, action: Action): string {
       return "Too many emails requested. Wait a minute and try again.";
     case "email_address_not_authorized":
       return "We can't send email to that address yet. Ask your admin to finish the email setup.";
+    case "otp_disabled":
+    case "signup_disabled":
+    case "user_not_found":
+      return action === "magic-link"
+        ? `There's no account for that email yet. If you've been invited, sign up first; otherwise email ${ACCESS_EMAIL} for access.`
+        : INVITE_ONLY_MESSAGE;
+  }
+
+  // The database's invite-only check rejects the new user row, which
+  // Supabase reports as a generic "Database error saving new user".
+  if (action === "sign-up" && /database error saving new user/i.test(error.message)) {
+    return INVITE_ONLY_MESSAGE;
   }
 
   const sendsEmail = action !== "sign-in";

@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
-import { authErrorMessage } from "@/lib/auth-errors";
+import { authErrorMessage, INVITE_ONLY_MESSAGE } from "@/lib/auth-errors";
 
 export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -18,6 +18,13 @@ export async function signUp(formData: FormData) {
 
   const origin = (await headers()).get("origin");
   const supabase = await createClient();
+
+  // Sign-up is invite-only (enforced in the database; see
+  // 0005_invite_only_signup.sql). Check first so we can say so plainly.
+  const { data: allowed, error: checkError } = await supabase.rpc("can_sign_up", { _email: email });
+  if (!checkError && allowed === false) {
+    return { error: INVITE_ONLY_MESSAGE };
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -74,6 +81,8 @@ export async function signInWithMagicLink(formData: FormData) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
+      // Magic links only sign in existing accounts; new people sign up.
+      shouldCreateUser: false,
       emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next ?? "/")}`,
     },
   });

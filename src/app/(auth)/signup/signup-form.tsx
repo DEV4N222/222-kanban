@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signUp } from "@/lib/actions/auth";
+import { ACCESS_EMAIL } from "@/lib/auth-errors";
 
 type ActionState = { error?: string; success?: boolean } | null;
 
@@ -34,7 +35,7 @@ export function SignupForm({ next }: { next: string | null }) {
         <CardDescription>
           {next?.startsWith("/invite/")
             ? "Use the email address your invite was sent to."
-            : "222 Solutions Kanban"}
+            : "222 Solutions Kanban is invite-only. Use the email address you were invited with."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -68,6 +69,14 @@ export function SignupForm({ next }: { next: string | null }) {
         </form>
 
         <p className="mt-4 text-sm text-muted-foreground">
+          Not invited yet?{" "}
+          <a href={`mailto:${ACCESS_EMAIL}?subject=Access to 222 Kanban`} className="underline underline-offset-4">
+            Email {ACCESS_EMAIL}
+          </a>{" "}
+          to ask for access.
+        </p>
+
+        <p className="mt-2 text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
             href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
