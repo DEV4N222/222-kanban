@@ -110,6 +110,8 @@ export interface Database {
           name: string;
           created_at: string;
           created_by: string | null;
+          archived_at: string | null;
+          archived_by: string | null;
         };
         Insert: {
           id?: string;
@@ -117,6 +119,8 @@ export interface Database {
           name: string;
           created_at?: string;
           created_by?: string | null;
+          archived_at?: string | null;
+          archived_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["boards"]["Insert"]>;
         Relationships: [];
