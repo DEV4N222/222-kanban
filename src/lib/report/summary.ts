@@ -53,7 +53,9 @@ async function aiSummary(data: SprintReportData): Promise<ExecutiveSummary> {
   const list = (cards: SprintReportData["completedCards"]) =>
     cards.length ? cards.map((c) => `- ${c.title.replace(/\s+/g, " ")}`).join("\n") : "(none)";
 
-  const client = new Anthropic();
+  // Keep well inside the function's time limit: if Claude is slow, the
+  // report falls back to the factual summary rather than failing.
+  const client = new Anthropic({ timeout: 20_000, maxRetries: 0 });
   const response = await client.beta.messages.parse({
     model: "claude-opus-5",
     max_tokens: 4000,

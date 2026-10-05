@@ -1,4 +1,6 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/db/types";
 import { computeBurndown, type BurndownPoint } from "@/lib/analytics/burndown";
 import { computeCfd } from "@/lib/analytics/cfd";
 import { computeLeaderboard, type LeaderboardEntry } from "@/lib/analytics/leaderboard";
@@ -34,9 +36,10 @@ export type SprintReportData = {
 export async function loadSprintReportData(
   workspaceId: string,
   boardId: string,
-  sprintId: string
+  sprintId: string,
+  client?: SupabaseClient<Database>
 ): Promise<SprintReportData | null> {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   const [
     { data: board },

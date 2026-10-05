@@ -27,15 +27,18 @@ export async function GET(
     return NextResponse.json({ error: "Sign in to download reports." }, { status: 401 });
   }
 
-  // Everything is read with the signed-in user's permissions, so a board
-  // they can't see comes back as not found.
-  const data = await loadSprintReportData(workspaceId, boardId, sprintId);
-  if (!data) {
-    return NextResponse.json({ error: "That sprint or board wasn't found." }, { status: 404 });
-  }
-
+  let step = "loading the sprint's data";
   try {
+    // Everything is read with the signed-in user's permissions, so a board
+    // they can't see comes back as not found.
+    const data = await loadSprintReportData(workspaceId, boardId, sprintId);
+    if (!data) {
+      return NextResponse.json({ error: "That sprint or board wasn't found." }, { status: 404 });
+    }
+
+    step = "writing the executive summary";
     const summary = await writeExecutiveSummary(data);
+    step = "building the slides";
     const deck = await buildSprintDeck(data, summary);
     const fileName = `${data.boardName} - ${data.sprint.name} - Sprint report.pptx`.replace(/[\\/:*?"<>|]+/g, "-");
 
@@ -47,7 +50,12 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[report] failed to build sprint report", error);
-    return NextResponse.json({ error: "The report couldn't be generated. Please try again." }, { status: 500 });
+    console.error(`[report] failed while ${step}`, error);
+    // Internal tool: show the actual reason so a failure can be diagnosed.
+    const reason = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: `Failed while ${step}: ${reason.slice(0, 300)}` },
+      { status: 500 }
+    );
   }
 }
