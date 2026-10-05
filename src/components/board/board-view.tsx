@@ -24,6 +24,7 @@ import { CardDetailSheet } from "./card-detail-sheet";
 import { SprintDialog } from "./sprint-dialog";
 import { LabelsDialog } from "@/components/labels/labels-dialog";
 import { ArchivedCardsDialog } from "./archived-cards-dialog";
+import { ReportMenu } from "@/components/report/report-menu";
 import { toast } from "sonner";
 import { useBoardRealtime } from "@/hooks/use-board-realtime";
 import { createColumn, deleteColumn, renameColumn, updateColumnSettings } from "@/lib/actions/columns";
@@ -319,6 +320,12 @@ export function BoardView({
             <BarChart3 className="size-4" />
             Analytics
           </Button>
+          <ReportMenu
+            workspaceId={workspaceId}
+            boardId={boardId}
+            sprints={sprints}
+            currentSprintId={currentSprint?.id ?? null}
+          />
         </div>
       </div>
 
