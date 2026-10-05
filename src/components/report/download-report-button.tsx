@@ -24,7 +24,12 @@ export function DownloadReportButton({
       const response = await fetch(`/w/${workspaceId}/b/${boardId}/report?sprint=${sprintId}`);
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "The report couldn't be generated.");
+        throw new Error(
+          body?.error ??
+            (response.status === 504
+              ? "The report took too long to build (the server timed out)."
+              : `The server returned an error (HTTP ${response.status}).`)
+        );
       }
       const blob = await response.blob();
       const disposition = response.headers.get("Content-Disposition") ?? "";
