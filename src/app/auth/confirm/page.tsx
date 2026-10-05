@@ -31,6 +31,9 @@ export default async function ConfirmPage({
   // Supabase's default email templates send a PKCE `code` instead of a
   // token hash; that only works in the browser that asked for the link.
   const code = !tokenHash && params.code ? params.code : null;
+  // Supabase's default template sends a `code` without a type, so also go by
+  // where the link leads.
+  const isRecovery = type === "recovery" || next === "/reset-password";
 
   const confirm = async () => {
     "use server";
@@ -38,24 +41,31 @@ export default async function ConfirmPage({
     const { error } = tokenHash
       ? await supabase.auth.verifyOtp({ type: type!, token_hash: tokenHash })
       : await supabase.auth.exchangeCodeForSession(code!);
-    redirect(error ? "/login?error=invalid-link" : next);
+    // A failed reset link lands on /reset-password, which offers a new one.
+    redirect(error ? (isRecovery ? "/reset-password" : "/login?error=invalid-link") : next);
   };
 
   const usable = Boolean(tokenHash || code);
-  const isSignup = type === "signup";
+  const title = !usable
+    ? "Link not valid"
+    : isRecovery
+      ? "Reset your password"
+      : type === "signup"
+        ? "Confirm your email"
+        : "Sign in to 222 Kanban";
+  const description = !usable
+    ? (params.error_description ?? "This link is incomplete, has expired or was already used.")
+    : isRecovery
+      ? "Click continue to choose a new password."
+      : "Click continue to finish signing in.";
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/30 p-4">
       <Logo size={48} />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{usable ? (isSignup ? "Confirm your email" : "Sign in to 222 Kanban") : "Link not valid"}</CardTitle>
-          <CardDescription>
-            {usable
-              ? "Click continue to finish signing in."
-              : (params.error_description ??
-                "This sign-in link is incomplete, has expired or was already used.")}
-          </CardDescription>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
           {usable ? (

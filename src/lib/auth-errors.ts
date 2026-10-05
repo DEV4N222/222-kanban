@@ -1,6 +1,6 @@
 import type { AuthError } from "@supabase/supabase-js";
 
-type Action = "sign-in" | "sign-up";
+type Action = "sign-in" | "sign-up" | "password-reset" | "password-update";
 
 export const ACCESS_EMAIL = "info@222.solutions";
 export const INVITE_ONLY_MESSAGE = `Sign-up is by invitation only. To ask for access, email ${ACCESS_EMAIL}.`;
@@ -33,6 +33,10 @@ export function authErrorMessage(error: AuthError, action: Action): string {
       return "We can't send email to that address yet. Ask your admin to finish the email setup.";
     case "signup_disabled":
       return INVITE_ONLY_MESSAGE;
+    case "same_password":
+      return "That's your current password. Choose a different one.";
+    case "weak_password":
+      return "That password is too easy to guess. Try a longer one.";
   }
 
   // The database's invite-only check rejects the new user row, which
@@ -45,6 +49,9 @@ export function authErrorMessage(error: AuthError, action: Action): string {
   const unreadable = !error.message || /^\s*\{\s*\}\s*$/.test(error.message);
   if (action === "sign-up" && (unreadable || (error.status ?? 0) >= 500)) {
     return "We couldn't finish signing you up just now. Try again in a minute.";
+  }
+  if (action === "password-reset" && (unreadable || (error.status ?? 0) >= 500)) {
+    return "We couldn't send the reset email just now. Try again in a minute.";
   }
   if (unreadable) {
     return "Something went wrong. Please try again.";
