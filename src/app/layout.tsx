@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Urbanist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { AppFooter } from "@/components/app-footer";
 import "./globals.css";
 
 const urbanist = Urbanist({
@@ -28,8 +29,9 @@ export default function RootLayout({
       lang="en"
       className={`${urbanist.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-svh flex flex-col">
         {children}
+        <AppFooter />
         <Toaster position="bottom-right" />
       </body>
     </html>

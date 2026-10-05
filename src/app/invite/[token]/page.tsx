@@ -39,7 +39,7 @@ export default async function InvitePage({
   };
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/30 p-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-muted/30 p-4">
       <Logo size={48} />
       <Card className="w-full max-w-sm">
         <CardHeader>
