@@ -19,6 +19,9 @@ const repo =
     : "DEV4N222/222-kanban";
 
 const nextConfig: NextConfig = {
+  // Builds the sprint report (.pptx) on the server; load it from node_modules
+  // rather than bundling it.
+  serverExternalPackages: ["pptxgenjs"],
   env: {
     BUILD_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA || git("rev-parse HEAD"),
     BUILD_COMMIT_MESSAGE: (process.env.VERCEL_GIT_COMMIT_MESSAGE || git("log -1 --pretty=%s")).split("\n")[0],
