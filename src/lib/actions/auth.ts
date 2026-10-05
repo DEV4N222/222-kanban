@@ -67,32 +67,6 @@ export async function signIn(formData: FormData) {
   redirect(next ?? "/");
 }
 
-export async function signInWithMagicLink(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim();
-  const next = safeNext(formData.get("next"));
-
-  if (!email) {
-    return { error: "Email is required." };
-  }
-
-  const origin = (await headers()).get("origin");
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      // Magic links only sign in existing accounts; new people sign up.
-      shouldCreateUser: false,
-      emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next ?? "/")}`,
-    },
-  });
-
-  if (error) {
-    return { error: authErrorMessage(error, "magic-link") };
-  }
-
-  return { success: true };
-}
 
 export async function signOut() {
   const supabase = await createClient();

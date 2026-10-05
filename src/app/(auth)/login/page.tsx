@@ -3,7 +3,7 @@ import { LoginForm } from "./login-form";
 
 const ERRORS: Record<string, string> = {
   "invalid-link":
-    "That sign-in link has expired or was already used. Links work once and expire after an hour — request a new one below.",
+    "That email link has expired or was already used. Sign in with your email and password below.",
 };
 
 export default async function LoginPage({

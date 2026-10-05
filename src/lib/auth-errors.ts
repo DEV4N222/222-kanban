@@ -1,6 +1,6 @@
 import type { AuthError } from "@supabase/supabase-js";
 
-type Action = "sign-in" | "sign-up" | "magic-link";
+type Action = "sign-in" | "sign-up";
 
 export const ACCESS_EMAIL = "info@222.solutions";
 export const INVITE_ONLY_MESSAGE = `Sign-up is by invitation only. To ask for access, email ${ACCESS_EMAIL}.`;
@@ -31,12 +31,8 @@ export function authErrorMessage(error: AuthError, action: Action): string {
       return "Too many emails requested. Wait a minute and try again.";
     case "email_address_not_authorized":
       return "We can't send email to that address yet. Ask your admin to finish the email setup.";
-    case "otp_disabled":
     case "signup_disabled":
-    case "user_not_found":
-      return action === "magic-link"
-        ? `There's no account for that email yet. If you've been invited, sign up first; otherwise email ${ACCESS_EMAIL} for access.`
-        : INVITE_ONLY_MESSAGE;
+      return INVITE_ONLY_MESSAGE;
   }
 
   // The database's invite-only check rejects the new user row, which
@@ -45,10 +41,10 @@ export function authErrorMessage(error: AuthError, action: Action): string {
     return INVITE_ONLY_MESSAGE;
   }
 
-  const sendsEmail = action !== "sign-in";
+  // Sign-up may send a confirmation email (when that's switched on in Supabase).
   const unreadable = !error.message || /^\s*\{\s*\}\s*$/.test(error.message);
-  if (sendsEmail && (unreadable || (error.status ?? 0) >= 500)) {
-    return "We couldn't send the email just now. Try again in a minute, or sign in with your password.";
+  if (action === "sign-up" && (unreadable || (error.status ?? 0) >= 500)) {
+    return "We couldn't finish signing you up just now. Try again in a minute.";
   }
   if (unreadable) {
     return "Something went wrong. Please try again.";
