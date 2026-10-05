@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { BoardView } from "@/components/board/board-view";
 import type { CardWithLabels } from "@/lib/types";
@@ -23,7 +25,8 @@ export default async function BoardPage({
     { data: sprints },
     { data: members },
   ] = await Promise.all([
-    supabase.from("boards").select("id, name").eq("id", boardId).maybeSingle(),
+    // "*" rather than naming archived_at, so this works before the archive migration has run.
+    supabase.from("boards").select("*").eq("id", boardId).maybeSingle(),
     supabase.from("columns").select("*").eq("board_id", boardId).order("position"),
     supabase
       .from("cards")
@@ -41,6 +44,22 @@ export default async function BoardPage({
 
   if (!board) {
     notFound();
+  }
+
+  if (board.archived_at) {
+    return (
+      <div className="mx-auto w-full max-w-lg flex-1 p-6">
+        <div className="space-y-3 rounded-lg border p-6">
+          <h1 className="text-lg font-semibold">&ldquo;{board.name}&rdquo; is archived</h1>
+          <p className="text-sm text-muted-foreground">
+            Nothing has been deleted. A workspace owner or admin can restore it from Boards → Archived boards.
+          </p>
+          <Button nativeButton={false} render={<Link href={`/w/${workspaceId}`} />}>
+            Back to boards
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const cards: CardWithLabels[] = (cardsRaw ?? []).map((c) => {
