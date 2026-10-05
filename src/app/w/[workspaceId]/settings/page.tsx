@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InviteForm } from "@/components/workspace/invite-form";
 import { CopyInviteLink } from "@/components/workspace/copy-invite-link";
 import { BuildInfoCard } from "@/components/workspace/build-info-card";
 import { MemberRoleSelect } from "@/components/workspace/member-role-select";
+import { RenameWorkspaceForm } from "@/components/workspace/rename-workspace-form";
 import { buildInfo, formatBuildTime } from "@/lib/build-info";
 import { removeMember, revokeInvite } from "@/lib/actions/invites";
 
@@ -51,7 +52,8 @@ export default async function WorkspaceSettingsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: members }, { data: invites }] = await Promise.all([
+  const [{ data: workspace }, { data: members }, { data: invites }] = await Promise.all([
+    supabase.from("workspaces").select("name").eq("id", workspaceId).maybeSingle(),
     supabase
       .from("workspace_members")
       .select("user_id, role, profiles(name, avatar_url)")
@@ -87,6 +89,18 @@ export default async function WorkspaceSettingsPage({
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Workspace settings</h1>
+
+      {isOwner && workspace && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Workspace name</CardTitle>
+            <CardDescription>Shown at the top of every page in this workspace. Only you, as the owner, can change it.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RenameWorkspaceForm workspaceId={workspaceId} name={workspace.name} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
