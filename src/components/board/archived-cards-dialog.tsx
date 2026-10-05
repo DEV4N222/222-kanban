@@ -65,7 +65,7 @@ export function ArchivedCardsDialog({
         else setConfirmingId(null);
       }}
     >
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger render={<Button size="sm" />}>
         <Archive className="size-4" />
         Archived
       </DialogTrigger>
