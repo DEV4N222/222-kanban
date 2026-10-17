@@ -17,6 +17,15 @@ export function authErrorMessage(error: AuthError, action: Action): string {
     message: error.message,
   });
 
+  // The auth server couldn't be reached at all (e.g. the Supabase project is
+  // paused or down, or the network dropped): supabase-js reports "fetch failed".
+  if (
+    error.name === "AuthRetryableFetchError" ||
+    /fetch failed|failed to fetch|network ?error|ENOTFOUND|ECONNREFUSED|ETIMEDOUT/i.test(error.message)
+  ) {
+    return "Can't reach the server right now. Please try again in a few minutes.";
+  }
+
   switch (error.code) {
     case "invalid_credentials":
       return "That email and password don't match.";
