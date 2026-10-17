@@ -232,9 +232,15 @@ export function BoardView({
 
     const result = await createCard(boardId, columnId, title);
     if (result.success && result.id) {
-      setCards((prev) =>
-        prev.map((c) => (c.id === tempId ? { ...c, id: result.id! } : c))
-      );
+      const realId = result.id;
+      setCards((prev) => {
+        // The realtime INSERT for this card can arrive before createCard
+        // returns, adding it under its real id while our optimistic copy is
+        // still under the temp id. Keep one: the realtime copy if it came
+        // first (it's the saved row), otherwise the optimistic one.
+        if (prev.some((c) => c.id === realId)) return prev.filter((c) => c.id !== tempId);
+        return prev.map((c) => (c.id === tempId ? { ...c, id: realId } : c));
+      });
     } else {
       setCards((prev) => prev.filter((c) => c.id !== tempId));
     }
