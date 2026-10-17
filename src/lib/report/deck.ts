@@ -70,6 +70,8 @@ export async function buildSprintDeck(data: SprintReportData, summary: Executive
   ]);
   if (summary.aiWritten) {
     text(exec, "Summary written by AI from the sprint's cards and figures.", { x: MARGIN_X, y: 6.42, w: 8, h: 0.24, fontSize: 10, color: LIGHT_GREY });
+  } else if (summary.aiUnavailableReason) {
+    text(exec, `AI summary unavailable: ${summary.aiUnavailableReason}`, { x: MARGIN_X, y: 6.35, w: 10.5, h: 0.4, fontSize: 10, color: LIGHT_GREY, valign: "top", fit: "shrink" });
   }
 
   // ── 3. Highlights ───────────────────────────────────────────────────────
