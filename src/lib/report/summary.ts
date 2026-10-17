@@ -1,6 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
+import { askClaudeForJson, describeClaudeError } from "@/lib/ai/claude";
 import type { SprintReportData } from "./data";
 
 export type ExecutiveSummary = {
@@ -9,6 +8,8 @@ export type ExecutiveSummary = {
   highlights: string[];
   nextSteps: string[];
   aiWritten: boolean;
+  /** Why the AI summary wasn't used, when it was attempted and failed. */
+  aiUnavailableReason?: string;
 };
 
 const Summary = z.object({
@@ -31,6 +32,7 @@ export async function writeExecutiveSummary(data: SprintReportData): Promise<Exe
       return await aiSummary(data);
     } catch (error) {
       console.error("[report] AI summary failed, using the factual summary", error);
+      return { ...factualSummary(data), aiUnavailableReason: describeClaudeError(error).message };
     }
   }
   return factualSummary(data);
@@ -55,26 +57,25 @@ async function aiSummary(data: SprintReportData): Promise<ExecutiveSummary> {
 
   // Keep well inside the function's time limit: if Claude is slow, the
   // report falls back to the factual summary rather than failing.
-  const client = new Anthropic({ timeout: 20_000, maxRetries: 0 });
-  const response = await client.beta.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 4000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    output_config: { effort: "low", format: betaZodOutputFormat(Summary) },
+  const { output: out, refused } = await askClaudeForJson({
+    schema: Summary,
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `<sprint_facts>\n${facts}\n</sprint_facts>\n\n<completed_cards>\n${list(data.completedCards)}\n</completed_cards>\n\n<carried_over_cards>\n${list(data.carriedOverCards)}\n</carried_over_cards>`,
-      },
-    ],
-  });
+    user: `<sprint_facts>
+${facts}
+</sprint_facts>
 
-  if (response.stop_reason === "refusal" || !response.parsed_output) {
-    throw new Error(`No usable summary (stop_reason: ${response.stop_reason})`);
+<completed_cards>
+${list(data.completedCards)}
+</completed_cards>
+
+<carried_over_cards>
+${list(data.carriedOverCards)}
+</carried_over_cards>`,
+    timeoutMs: 20_000,
+  });
+  if (refused || !out) {
+    throw new Error(refused ? "Claude declined to write this summary." : "The summary came back incomplete.");
   }
-  const out = response.parsed_output;
   return {
     headline: out.headline.trim(),
     summary: out.summary.trim(),

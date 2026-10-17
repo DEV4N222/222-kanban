@@ -1,8 +1,7 @@
 "use server";
 
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
+import { askClaudeForJson, describeClaudeError } from "@/lib/ai/claude";
 import { createClient } from "@/lib/supabase/server";
 import { RETRO_COLUMNS } from "@/lib/retro";
 import type { RetroKind, RetroNoteRow, RetroSummaryRow } from "@/lib/types";
@@ -90,32 +89,18 @@ export async function generateRetroSummary(boardId: string, sprintId: string): P
 
   let story: z.infer<typeof RetroStory>;
   try {
-    const client = new Anthropic();
-    const response = await client.beta.messages.parse({
-      model: "claude-opus-5",
-      max_tokens: 4000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low", format: betaZodOutputFormat(RetroStory) },
+    const { output, refused } = await askClaudeForJson({
+      schema: RetroStory,
       system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Sprint: ${sprint.name}\n\n<retro_notes>\n${grouped}\n</retro_notes>`,
-        },
-      ],
+      user: `Sprint: ${sprint.name}\n\n<retro_notes>\n${grouped}\n</retro_notes>`,
     });
-
-    if (response.stop_reason === "refusal") return { error: "The summary couldn't be written for these notes." };
-    if (!response.parsed_output) return { error: "The summary came back incomplete. Please try again." };
-    story = response.parsed_output;
+    if (refused) return { error: "The summary couldn't be written for these notes." };
+    if (!output) return { error: "The summary came back incomplete. Please try again." };
+    story = output;
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      return { code: "not-configured", error: "The ANTHROPIC_API_KEY isn't valid. Check it in the app's environment." };
-    }
-    if (error instanceof Anthropic.RateLimitError) return { error: "Too many requests right now. Try again in a minute." };
-    if (error instanceof Anthropic.APIError) return { error: `The AI service returned an error (${error.status}).` };
-    throw error;
+    console.error("[retro] AI story failed", error);
+    const { message, notConfigured } = describeClaudeError(error);
+    return notConfigured ? { code: "not-configured", error: message } : { error: message };
   }
 
   const { data: summary, error } = await supabase
